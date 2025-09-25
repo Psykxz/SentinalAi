@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Report - SentinelAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to right, #141e30, #243b55);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding-top: 50px;
+        }
+
+        .report-container {
+            max-width: 900px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .report-header {
+            text-align: center;
+            border-bottom: 2px solid #5cb85c;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card h4 {
+            color: #5cb85c;
+        }
+
+        .list-group-item {
+            background-color: transparent;
+            color: #ddd;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .list-group-item strong {
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container report-container mt-5">
+        <div class="report-header">
+            <h1>User Activity Report</h1>
+            <p class="text-white-50">Generated on {{ 'now'|date:"F d, Y" }}</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="summary-card">
+                    <h4>Total Submissions</h4>
+                    <h1 class="display-3 text-white">{{ report.total_submissions }}</h1>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="summary-card">
+                    <h4>Threats Detected</h4>
+                    <h1 class="display-3 text-danger">{{ report.total_threats_detected }}</h1>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-card mt-4">
+            <h4>Threat Categories</h4>
+            {% if report.threat_categories %}
+            <ul class="list-group list-group-flush">
+                {% for category, count in report.threat_categories.items %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <strong>{{ category|title|replace('_', ' ') }}</strong>
+                    <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No threats have been detected in your submissions.</p>
+            {% endif %}
+        </div>
+
+        <div class="summary-card mt-4">
+            <h4>Recent Activity Logs</h4>
+            <ul class="list-group list-group-flush">
+                {% if report.recent_activity %}
+                {% for activity in report.recent_activity %}
+                <li class="list-group-item">
+                    <strong>{{ activity.activityType }}</strong>
+                    <span class="text-white-50 float-end">{{ activity.timeStamp|date:"M d, Y h:i A" }}</span>
+                    <p class="mb-0 text-white-75">{{ activity.description }}</p>
+                </li>
+                {% endfor %}
+                {% else %}
+                <p>No recent activity logs available.</p>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{% url 'user_home' %}" class="btn btn-outline-light btn-lg btn-custom">Go Back to Dashboard</a>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

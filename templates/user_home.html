@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - SentinelAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to right, #141e30, #243b55);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(0, 0, 0, 0.7) !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.4rem;
+            color: #fff !important;
+        }
+
+        .dashboard-header h2 {
+            font-weight: 700;
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-custom {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: none;
+            border-radius: 20px;
+            padding: 25px;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .card-custom:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .result-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            color: #ddd;
+        }
+
+        textarea,
+        input[type="file"] {
+            border-radius: 12px;
+            border: none;
+        }
+
+        .btn-custom {
+            border-radius: 30px;
+            padding: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-custom:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">SentinelAI</a>
+            <div class="d-flex">
+                <a href="{% url 'logout' %}" class="btn btn-warning btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard mt-5 pt-5">
+        <div class="dashboard-header text-center mb-4">
+            <h2>Welcome, {{ request.session.username }}</h2>
+            <p>Here’s your personalized dashboard overview.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card-custom text-center">
+                    <h5>My Reports</h5>
+                    <h2>12</h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-custom text-center">
+                    <h5>Threats Detected</h5>
+                    <h2>5</h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-custom text-center">
+                    <h5>Feedback Submitted</h5>
+                    <h2>3</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mt-4 align-items-stretch">
+            <div class="col-md-6">
+                <div class="card-custom h-100">
+                    <h5>Upload Text</h5>
+                    <form method="POST" action="{% url 'analyze_text' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <textarea name="text_input" class="form-control" rows="4"
+                                placeholder="Enter or paste your text here..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-custom">Analyze Text</button>
+                    </form>
+                    <div class="result-box mt-3">
+                        <h6>Text Analysis Result:</h6>
+                        {% if label %}
+                        <p><strong>Detected Label: {{ label }}</strong></p>
+                        <p>Original Text: "{{ user_text }}"</p>
+                        {% else %}
+                        <p><em>No analysis yet. Results will appear here.</em></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card-custom h-100">
+                    <h5>Upload Image/Document</h5>
+                    <form method="POST" action="{% url 'analyze_image' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <input type="file" class="form-control" name="image_file"
+                                accept="image/*, .pdf, .docx, .doc">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-custom">Analyze Image</button>
+                    </form>
+                    <div class="result-box mt-3">
+                        <h6>Image Analysis Result:</h6>
+                        {% if ocr_result %}
+                        <p><strong>Extracted Text:</strong> "{{ ocr_result }}"</p>
+                        <p><strong>Detected Label:</strong> {{ image_label }}</p>
+                        {% else %}
+                        <p><em>No analysis yet. Results will appear here.</em></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mt-2 align-items-stretch">
+            <div class="col-md-6">
+                <div class="card-custom h-100">
+                    <h5>My Recent Activity</h5>
+                    <ul>
+                        {% if recent_activities %}
+                        {% for activity in recent_activities %}
+                        <li>
+                            <strong>{{ activity.activityType }}</strong> - {{ activity.timeStamp|timesince }} ago
+                            {% if activity.description %}
+                            <p class="text-muted">{{ activity.description }}</p>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                        {% else %}
+                        <li><em>No recent activity to display.</em></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card-custom h-100">
+                    <h5>Submit Feedback</h5>
+                    {% if analysis_id %}
+                    <form method="POST" action="{% url 'submit_feedback' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="analysis_id" value="{{ analysis_id }}">
+                        <div class="mb-3">
+                            <label for="correct_label" class="form-label">Correct Label (optional)</label>
+                            <input type="text" class="form-control" id="correct_label" name="correct_label"
+                                placeholder="e.g., Not Bullying">
+                        </div>
+                        <div class="mb-3">
+                            <label for="comments" class="form-label">Comments</label>
+                            <textarea class="form-control" id="comments" name="comments" rows="3"
+                                placeholder="Write your feedback here..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 btn-custom">Submit Feedback</button>
+                    </form>
+                    {% else %}
+                    <p class="text-muted">Please perform a text or image analysis first to submit feedback.</p>
+                    {% endif %}
+
+                    <div class="result-box mt-3">
+                        <h6>Feedback Status:</h6>
+                        {% if messages %}
+                        {% for message in messages %}
+                        <p class="alert alert-{{ message.tags }}">{{ message }}</p>
+                        {% endfor %}
+                        {% else %}
+                        <p><em>No feedback submitted yet.</em></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row g-4 mt-4 mb-5">
+            <div class="col-md-12">
+                <div class="card-custom text-center p-4">
+                    <h3>Generate Your Activity Report 📈</h3>
+                    <p class="text-white-50">Click below to create a detailed report of your submissions and threat detections.</p>
+                    <a href="{% url 'generate_user_report' %}" class="btn btn-success btn-lg btn-custom mt-3">Generate Report</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
