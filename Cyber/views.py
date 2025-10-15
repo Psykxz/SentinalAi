@@ -16,15 +16,11 @@ import pytesseract
 from PIL import Image
 from Cyber.slang_processor import load_slang_from_db, replace_slang, replace_emojis
 
-# Set the path to the Tesseract executable (adjust as needed)
 pytesseract.pytesseract.tesseract_cmd = r'D:\OCR\tesseract.exe'
 
-# --- Load ML Model and Slang Dictionary globally for efficiency ---
-# Define the path to your model
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "D:\ROHIT MCA MINI PROJECT\myProject\ml\cyberbullying_model.pkl")
 
-# Load the model and slang dictionary once when the server starts
 try:
     pipeline = joblib.load(MODEL_PATH)
     slang_dict = load_slang_from_db()
@@ -38,7 +34,6 @@ except Exception as e:
     slang_dict = None
     print(f"❌ An error occurred while loading: {e}")
 
-# --- Existing Views (No changes needed) ---
 def homepage(request):
     role = request.session.get("role", "guest")
     username = request.session.get("username", "Guest")
@@ -75,10 +70,117 @@ def admin_dashboard(request):
         return redirect("login")
     return render(request, "admin_dashboard.html")
 
+# def user_home(request):
+#     user_id = request.session.get('user_id')
+#     user_text_ids = TextContent.objects.filter(user_id=user_id).values_list('user_id', flat=True)
+#     total_submissions = user_text_ids.count()
+#     user_analysis_results = ContentAnalysis.objects.filter(source_id__in=user_text_ids)
+#     total_threats = user_analysis_results.exclude(
+#         detectedLabels='Not_cyberbullying'
+#     ).count()
+#     total_feedback_submitted = Feedback.objects.filter(submittedBy_id=user_id).count() 
+
+#     recent_activities = ActivityLog.objects.filter(user_id=user_id).order_by('-timeStamp')[:5]
+
+#     context = {
+#         # The variables to make your summary cards dynamic
+#         'total_submissions': total_submissions,
+#         'total_threats_detected': total_threats,
+#         'total_feedback_submitted': total_feedback_submitted,
+        
+#         # The list for the activity log section
+#         'recent_activities': recent_activities,
+#     }
+
+#     if request.session.get("role") != "user":
+#         return redirect("login")
+#     return render(request, "user_home.html",{"role": "user", "username": request.session.get("username", "User")}, context)
+
+
+
+# def user_home(request):
+#     user_id = request.session.get('user_id')
+    
+#     if request.session.get("role") != "user":
+#         return redirect("login")
+
+#     # 1. FIX: Retrieve TextContent PKs ('id'), NOT 'user_id's, to link to ContentAnalysis
+#     # This retrieves the list of IDs for submissions belonging to the user.
+#     user_text_ids = TextContent.objects.filter(user_id=user_id).values_list('user_id', flat=True)
+#     total_submissions = user_text_ids.count()
+    
+#     # 2. Total Threats
+#     user_analysis_results = ContentAnalysis.objects.filter(source_id__in=user_text_ids)
+#     total_threats = user_analysis_results.exclude(
+#         detectedLabels='Not_cyberbullying'
+#     ).count()
+    
+#     # 3. Total Feedback
+#     total_feedback_submitted = Feedback.objects.filter(submittedBy_id=user_id).count() 
+
+#     # 4. Recent Activities
+#     recent_activities = ActivityLog.objects.filter(user_id=user_id).order_by('-timeStamp')[:5]
+
+#     # 5. FIX: Merge ALL context variables into a single dictionary
+#     context = {
+#         # Summary cards data
+#         'total_submissions': total_submissions,
+#         'total_threats_detected': total_threats,
+#         'total_feedback_submitted': total_feedback_submitted,
+        
+#         # Activity log data
+#         'recent_activities': recent_activities,
+        
+#         # Session/Auth data
+#         "role": "user", 
+#         "username": request.session.get("username", "User")
+        
+#         # NOTE: Add any other context variables needed by user_home.html here!
+#     }
+
+#     # 6. FIX: Call render with a single, merged context dictionary
+#     return render(request, "user_home.html", context)
+
+
+from django.contrib.contenttypes.models import ContentType
+
 def user_home(request):
+    user_id = request.session.get('user_id')
+    
     if request.session.get("role") != "user":
         return redirect("login")
-    return render(request, "user_home.html",{"role": "user", "username": request.session.get("username", "User")})
+
+    user_text_pks = TextContent.objects.filter(user_id=user_id).values_list('text_id', flat=True)
+    total_submissions = user_text_pks.count()
+    
+    text_content_type = ContentType.objects.get_for_model(TextContent)
+
+    user_analysis_results = ContentAnalysis.objects.filter(
+        content_type=text_content_type, 
+        object_id__in=user_text_pks  
+    )
+    
+    total_threats = user_analysis_results.exclude(
+        detectedLabels='Not_cyberbullying'
+    ).count()
+    
+    total_feedback_submitted = Feedback.objects.filter(submittedBy_id=user_id).count() 
+
+    recent_activities = ActivityLog.objects.filter(user_id=user_id).order_by('-timeStamp')[:5]
+
+    context = {
+        'total_submissions': total_submissions,
+        'total_threats_detected': total_threats,
+        'total_feedback_submitted': total_feedback_submitted,
+        
+        'recent_activities': recent_activities,
+        
+        "role": "user", 
+        "username": request.session.get("username", "User")
+        
+    }
+
+    return render(request, "user_home.html", context)
 
 def user_dashboard(request):
     if request.session.get("role") != "user":
@@ -103,6 +205,7 @@ def register_view(request):
         if User.objects.filter(email=email).exists():
             messages.error(request, "Email already registered!")
             return redirect("register")
+        
         User.objects.create(
             username=username,
             full_name=full_name,
@@ -116,7 +219,6 @@ def register_view(request):
         return redirect("login")
     return render(request, "register.html")
 
-# --- Updated Analysis Views with Preprocessing Logic ---
 def analyze_text(request):
     if request.method == "POST":
         user_text = request.POST.get("text_input")
@@ -131,37 +233,31 @@ def analyze_text(request):
         except User.DoesNotExist:
             return redirect('login_view')
 
-        # Log the text submission activity
         log_activity(current_user, 'Text Submission', f'Submitted text for analysis: "{user_text[:50]}..."')
 
-        # --- Preprocessing Step (Emoji and Slang Interpretation) ---
         processed_text = replace_emojis(user_text)
         if slang_dict:
             processed_text = replace_slang(processed_text, slang_dict)
 
-        # 2. Store the original text in TextContent table
         text_entry = TextContent.objects.create(
             user=current_user,
             content=user_text,
             submission_time=datetime.now()
         )
 
-        # 3. Analyze the processed text using the ML model
         analysis_result = utils.predict_text(processed_text)
         detected_labels = analysis_result['label']
         severity = "High" if "bullying" in detected_labels.lower() or "threat" in detected_labels.lower() else "Low"
 
-        # 4. Store the analysis result in ContentAnalysis table
         content_analysis_entry = ContentAnalysis.objects.create(
             sourceType='text',
-            source_id=text_entry.text_id,
+            source_object=text_entry,
             isFlagged=True,
             severityLevel=severity,
             detectedLabels=detected_labels,
             analysisTime=datetime.now()
         )
 
-        # Log the analysis result
         log_activity(current_user, 'Text Analysis', f'Analysis complete. Detected labels: {detected_labels}')
 
         recent_activities = ActivityLog.objects.filter(user=current_user).order_by('-timeStamp')[:10]
@@ -170,7 +266,7 @@ def analyze_text(request):
             'analysis_result': analysis_result,
             'user_text': user_text,
             'label': detected_labels,
-            'analysis_id': content_analysis_entry.analysis_id, # Pass the analysis ID
+            'analysis_id': content_analysis_entry.analysis_id,
             'recent_activities': recent_activities,
         })
     return redirect('user_home')
@@ -187,7 +283,6 @@ def analyze_image(request):
         except User.DoesNotExist:
             return redirect('login_view')
 
-        # Log the image upload activity
         log_activity(current_user, 'Image Upload', f'Uploaded image for analysis: "{uploaded_file.name}"')
 
         image_path = os.path.join("media", uploaded_file.name)
@@ -210,34 +305,29 @@ def analyze_image(request):
             log_activity(current_user, 'Image OCR', 'No text detected in the uploaded image.')
             return render(request, 'user_home.html', {'ocr_result': 'No text detected in the image.'})
 
-        # --- Preprocessing Step (Emoji and Slang Interpretation) ---
         processed_text = replace_emojis(extracted_text)
         if slang_dict:
             processed_text = replace_slang(processed_text, slang_dict)
 
-        # 4. Store the OCR result in the OCRResult table
         ocr_entry = OCRResult.objects.create(
             image=image_entry,
             extractedText=extracted_text,
             extractionTime=datetime.now()
         )
         
-        # 5. Analyze the processed text using the ML model
         analysis_result = utils.predict_text(processed_text)
         detected_labels = analysis_result['label']
         severity = "High" if "bullying" in detected_labels.lower() or "threat" in detected_labels.lower() else "Low"
         
-        # 6. Store the analysis result in the ContentAnalysis table
         content_analysis_entry = ContentAnalysis.objects.create(
-            sourceType='image',
-            source_id=ocr_entry.ocr_id,
-            isFlagged=True,
-            severityLevel=severity,
-            detectedLabels=detected_labels,
-            analysisTime=datetime.now()
-        )
+        sourceType='image',
+        source_object=ocr_entry, 
+        isFlagged=True,
+        severityLevel=severity,
+        detectedLabels=detected_labels,
+        analysisTime=datetime.now()
+       )
         
-        # Log the analysis result
         log_activity(current_user, 'Image Analysis', f'Analysis complete for image. Detected labels: {detected_labels}')
 
         recent_activities = ActivityLog.objects.filter(user=current_user).order_by('-timeStamp')[:10]
@@ -288,34 +378,184 @@ def submit_feedback(request):
     return redirect('user_dashboard')
 
 from django.db.models import Count
-from .models import TextContent, ActivityLog
+from .models import TextContent, ActivityLog, ContentAnalysis
+from django.contrib.contenttypes.models import ContentType
 
-@login_required
 def generate_user_report(request):
 
     user_id = request.session.get('user_id')
 
-    # 1. Get total submissions
-    total_submissions = TextContent.objects.filter(user_id=user_id).count()
+    user_text_pks = TextContent.objects.filter(user_id=user_id).values_list('text_id', flat=True)
+    total_submissions = user_text_pks.count()
 
-    # 2. Get total threats and their categories
-    threat_submissions = TextContent.objects.filter(user_id=user_id).exclude(analysis_result='Not a threat')
+    text_content_type = ContentType.objects.get_for_model(TextContent)
+
+    user_analysis_results = ContentAnalysis.objects.filter(
+        content_type=text_content_type, 
+        object_id__in=user_text_pks    
+    )
+
+    threat_submissions = user_analysis_results.exclude(
+        detectedLabels='Not_cyberbullying'
+    )
     total_threats = threat_submissions.count()
 
-    # Get threat categories and their counts
-    threat_categories = threat_submissions.values('analysis_result').annotate(count=Count('analysis_result'))
+    threat_categories = threat_submissions.values('detectedLabels').annotate(
+        count=Count('detectedLabels')
+    ).order_by('-count')
 
-    # Format the data for a clean display
-    threat_categories_dict = {item['analysis_result']: item['count'] for item in threat_categories}
+    threat_categories_dict = {
+        item['detectedLabels']: item['count'] 
+        for item in threat_categories
+    }
 
-    # 3. Get recent activity logs for context
     recent_activity = ActivityLog.objects.filter(user_id=user_id).order_by('-timeStamp')[:10]
+
+    # report_data = {
+    #     'total_submissions': total_submissions,
+    #     'total_threats_detected': total_threats,
+    #     'threat_categories': threat_categories_dict,
+    #     'recent_activity': recent_activity
+    # }
+
+    # return render(request, 'user_report.html', {'report': report_data})
+
+    if total_submissions > 0:
+        threat_percentage = round((total_threats / total_submissions) * 100)
+        safe_submissions = total_submissions - total_threats
+    else:
+        threat_percentage = 0
+        safe_submissions = 0
 
     report_data = {
         'total_submissions': total_submissions,
         'total_threats_detected': total_threats,
         'threat_categories': threat_categories_dict,
-        'recent_activity': recent_activity
+        'recent_activity': recent_activity,
+        # New metrics to pass to the template
+        'safe_submissions': safe_submissions, 
+        'threat_percentage': threat_percentage, 
+        'current_time': datetime.now(), 
     }
 
     return render(request, 'user_report.html', {'report': report_data})
+
+
+
+import csv
+import io
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.shortcuts import redirect
+# Import WeasyPrint for PDF generation (if installed)
+try:
+    from weasyprint import HTML
+except ImportError:
+    HTML = None 
+    print("Warning: WeasyPrint not installed. PDF export will be disabled.")
+
+
+# Reuse the logic from generate_user_report to get report_data
+# NOTE: You MUST replace this with your actual data retrieval logic.
+def get_report_data_for_user(user_id):
+    # This function should contain the exact data fetching/calculation
+    # logic currently in your generate_user_report view.
+    
+    # Placeholder implementation (REPLACE THIS)
+    from .models import TextContent, ContentAnalysis, ActivityLog # Replace with your actual imports
+    from django.db.models import Count
+    from django.contrib.contenttypes.models import ContentType
+    
+    user_text_pks = TextContent.objects.filter(user_id=user_id).values_list('text_id', flat=True)
+    total_submissions = user_text_pks.count()
+    text_content_type = ContentType.objects.get_for_model(TextContent)
+    
+    user_analysis_results = ContentAnalysis.objects.filter(
+        content_type=text_content_type, 
+        object_id__in=user_text_pks    
+    )
+    
+    threat_submissions = user_analysis_results.exclude(detectedLabels='Not_cyberbullying')
+    total_threats = threat_submissions.count()
+
+    if total_submissions > 0:
+        threat_percentage = round((total_threats / total_submissions) * 100)
+    else:
+        threat_percentage = 0
+        
+    threat_categories_dict = {
+        item['detectedLabels']: item['count'] 
+        for item in threat_submissions.values('detectedLabels').annotate(count=Count('detectedLabels'))
+    }
+    
+    recent_activity = ActivityLog.objects.filter(user_id=user_id).order_by('-timeStamp')[:10]
+
+    return {
+        'total_submissions': total_submissions,
+        'total_threats_detected': total_threats,
+        'threat_categories': threat_categories_dict,
+        'recent_activity': recent_activity,
+        'threat_percentage': threat_percentage,
+        'current_time': datetime.now(),
+    }
+
+
+# @login_required
+def download_report(request, report_format):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return redirect('login')
+        
+    report_data = get_report_data_for_user(user_id)
+    
+    if report_format == 'excel':
+        # --- EXCEL/CSV GENERATION ---
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="sentinelai_report_{user_id}.csv"'
+
+        writer = csv.writer(response)
+
+        # 1. Write Summary Stats
+        writer.writerow(['Report Summary'])
+        writer.writerow(['Total Submissions', 'Total Threats', 'Threat Rate (%)'])
+        writer.writerow([report_data['total_submissions'], report_data['total_threats_detected'], report_data['threat_percentage']])
+        writer.writerow([])
+        
+        # 2. Write Threat Categories
+        writer.writerow(['Threat Categories'])
+        writer.writerow(['Category', 'Count'])
+        for category, count in report_data['threat_categories'].items():
+            # Use the replace_chars logic here manually if you need cleaning
+            clean_category = category.replace('_', ' ').title() 
+            writer.writerow([clean_category, count])
+        writer.writerow([])
+        
+        # 3. Write Recent Activity (Detailed logs are often most useful in Excel)
+        writer.writerow(['Recent Activity Logs'])
+        writer.writerow(['Timestamp', 'Activity Type', 'Description'])
+        for activity in report_data['recent_activity']:
+            writer.writerow([
+                activity.timeStamp.strftime("%Y-%m-%d %H:%M:%S"), 
+                activity.activityType, 
+                activity.description
+            ])
+
+        return response
+        
+    elif report_format == 'pdf' and HTML:
+        # --- PDF GENERATION (Requires WeasyPrint) ---
+        
+        html_content = render_to_string('pdf_report_template.html', {'report': report_data, 'user_id': user_id})
+        
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="sentinelai_report_{user_id}.pdf"'
+
+        # Generate PDF using WeasyPrint
+        HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(response)
+        
+        return response
+        
+    else:
+        # Fallback for unsupported format or missing PDF library
+        return HttpResponse("Report format not supported or PDF library missing.", status=400)

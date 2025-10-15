@@ -17,4 +17,5 @@ urlpatterns = [
     path('analyze_image/', analyze_image, name='analyze_image'),
     path('submit-feedback/', submit_feedback, name='submit_feedback'),
     path('generate_user_report/', generate_user_report, name='generate_user_report'),
+    path('report/download/<str:report_format>/', download_report, name='download_report'),
 ]

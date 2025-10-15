@@ -18,19 +18,14 @@ def train_model(dataset_paths, model_path=MODEL_PATH):
     for path in dataset_paths:
         df = pd.read_csv(path)
         
-        # Determine columns for each specific file
         if "cyberbullying_tweets.csv" in path:
             text_col = "tweet_text"
             label_col = "cyberbullying_type"
-            # Since 'cyberbullying_type' is a single label, we'll keep it as is.
-            # No need to create a composite label.
             df_cleaned = df[[text_col, label_col]].copy()
             df_cleaned.rename(columns={text_col: "text", label_col: "label"}, inplace=True)
             
         elif "train.csv" in path:
             text_col = "comment_text"
-            # For this dataset, we'll treat any of the toxic labels as "bullying"
-            # and a clean comment as "not_cyberbullying".
             toxic_cols = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
             df['is_toxic'] = df[toxic_cols].max(axis=1)
             df['label'] = df['is_toxic'].apply(lambda x: 'bullying' if x > 0 else 'not_cyberbullying')
@@ -69,11 +64,11 @@ def train_model(dataset_paths, model_path=MODEL_PATH):
 
     # Evaluate
     y_pred = pipeline.predict(X_test)
-    print("\n📌 Classification Report:\n", classification_report(y_test, y_pred))
+    print("\nClassification Report:\n", classification_report(y_test, y_pred))
 
     # Save model
     joblib.dump(pipeline, model_path)
-    print(f"✅ Model trained and saved to {model_path}")
+    print(f"Model trained and saved to {model_path}")
 
 if __name__ == "__main__":
     data_files = [

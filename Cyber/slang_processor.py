@@ -1,8 +1,6 @@
 import re
 from .models import SlangInterpretation as slang
 
-# A dictionary of common emojis and their meanings
-# You can expand this as needed.
 EMOJI_DICT = {
     # '😂': 'laughing', '😭': 'crying', '❤️': 'love', '😍': 'heart eyes',
     # '😊': 'smiling', '🙏': 'praying', '👍': 'thumbs up', '🔥': 'fire',
@@ -112,10 +110,8 @@ def load_slang_from_db():
     """Loads all slang terms from the database into a dictionary."""
     slang_dict = {}
     try:
-        # Fetch all slang records from the database
         slang_records = slang.objects.all()
         for record in slang_records:
-            # Use regex to match whole words only
             pattern = r'\b' + re.escape(record.slangText) + r'\b'
             slang_dict[pattern] = record.meaning
     except Exception as e:
@@ -128,11 +124,9 @@ def replace_slang(text, slang_dict):
     if not slang_dict:
         return text
     
-    # Sort by key length descending to avoid issues with substrings (e.g., "gonna" before "gon")
     sorted_slang = sorted(slang_dict.items(), key=lambda item: len(item[0]), reverse=True)
     
     for pattern, meaning in sorted_slang:
-        # Use re.sub to replace all occurrences based on the pattern
         text = re.sub(pattern, f' {meaning} ', text, flags=re.IGNORECASE)
         
     return text.strip()

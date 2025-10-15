@@ -84,7 +84,7 @@ DATABASES = {
         'USER': 'root',            # default XAMPP user
         'PASSWORD': '',            # leave empty if no password
         'HOST': '127.0.0.1',       # or 'localhost'
-        'PORT': '3306',            # MySQL default port
+        'PORT': '3308',            # MySQL default port
     }
 }
 
@@ -133,5 +133,6 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'Cyber.CustomUser'
+LOGIN_URL = 'login' 
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'

@@ -1,7 +1,3 @@
-# from django.db import models
-
-# Create your models here.
-
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -26,12 +22,7 @@ class User(models.Model):
 
     def __str__(self):
         return f"{self.username} ({self.role})"
-    
-# from django.db import models
-# from django.contrib.auth.models import User
 
-
-# ---------- Text Content ----------
 class TextContent(models.Model):
     text_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -41,8 +32,6 @@ class TextContent(models.Model):
     def __str__(self):
         return f"Text {self.text_id} by {self.user.username}"
 
-
-# ---------- Image Content ----------
 class ImageContent(models.Model):
     image_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -52,8 +41,6 @@ class ImageContent(models.Model):
     def __str__(self):
         return f"Image {self.image_id} by {self.user.username}"
 
-
-# ---------- OCR Result ----------
 class OCRResult(models.Model):
     ocr_id = models.AutoField(primary_key=True)
     image = models.ForeignKey(ImageContent, on_delete=models.CASCADE)
@@ -63,12 +50,15 @@ class OCRResult(models.Model):
     def __str__(self):
         return f"OCR {self.ocr_id} for Image {self.image.image_id}"
 
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
-# ---------- Content Analysis ----------
 class ContentAnalysis(models.Model):
     analysis_id = models.AutoField(primary_key=True)
     sourceType = models.CharField(max_length=30)  # "text" or "image"
-    source_id = models.CharField(max_length=30)   # ID of TextContent or ImageContent
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    source_object = GenericForeignKey('content_type', 'object_id')
     isFlagged = models.BooleanField(default=False)
     severityLevel = models.CharField(max_length=10, choices=[("Low", "Low"), ("Medium", "Medium"), ("High", "High")], null=True, blank=True)
     detectedLabels = models.CharField(max_length=225, null=True, blank=True)
@@ -77,8 +67,6 @@ class ContentAnalysis(models.Model):
     def __str__(self):
         return f"Analysis {self.analysis_id} [{self.sourceType}]"
 
-
-# ---------- Emoji Analysis ----------
 class EmojiAnalysis(models.Model):
     emoji_id = models.AutoField(primary_key=True)
     symbol = models.CharField(max_length=30)      # emoji character
@@ -87,8 +75,6 @@ class EmojiAnalysis(models.Model):
     def __str__(self):
         return f"{self.symbol} - {self.meaning}"
 
-
-# ---------- Slang Interpretation ----------
 class SlangInterpretation(models.Model):
     slang_id = models.AutoField(primary_key=True)
     slangText = models.CharField(max_length=30)

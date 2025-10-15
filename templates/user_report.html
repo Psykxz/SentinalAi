@@ -1,3 +1,5 @@
+<!-- {% load custom_filters %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,13 +8,33 @@
     <title>User Report - SentinelAI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
+        /* body {
             background: linear-gradient(to right, #141e30, #243b55);
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
             padding-top: 50px;
-        }
+        } */
+
+        body {
+        background: linear-gradient(to right, #141e30, #243b55);
+        color: #fff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
+        padding-top: 50px;
+    }
+
+    .navbar {
+        /* UPDATED: Changed from transparent black to transparent dark slate */
+        background: rgba(20, 30, 48, 0.9) !important; 
+        backdrop-filter: blur(10px);
+    }
+
+    .navbar-brand {
+        font-weight: bold;
+        font-size: 1.4rem;
+        color: #fff !important;
+    }
 
         .report-container {
             max-width: 900px;
@@ -59,8 +81,16 @@
 </head>
 
 <body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">SentinelAI</a>
+        <div class="d-flex">
+            <a href="{% url 'logout' %}" class="btn btn-warning btn-sm">Logout</a>
+        </div>
+    </div>
+</nav>
 
-    <div class="container report-container mt-5">
+    <div class="container report-container mt-5 pt-5">
         <div class="report-header">
             <h1>User Activity Report</h1>
             <p class="text-white-50">Generated on {{ 'now'|date:"F d, Y" }}</p>
@@ -87,7 +117,7 @@
             <ul class="list-group list-group-flush">
                 {% for category, count in report.threat_categories.items %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <strong>{{ category|title|replace('_', ' ') }}</strong>
+                     <strong>{{ category|replace_chars:"_| " | title }}</strong>
                     <span class="badge bg-primary rounded-pill">{{ count }}</span>
                 </li>
                 {% endfor %}
@@ -121,4 +151,281 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+</html> -->
+
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Report - SentinelAI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to right, #141e30, #243b55);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding-top: 50px;
+        }
+
+        .navbar {
+            background: rgba(20, 30, 48, 0.9) !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.4rem;
+            color: #fff !important;
+        }
+
+        .report-container {
+            max-width: 900px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .report-header {
+            text-align: center;
+            border-bottom: 2px solid #5cb85c;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* New Styles for creativity */
+        .summary-card h4 {
+            color: #5cb85c;
+            /* Primary accent color */
+        }
+
+        .summary-stat {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .threat-stat {
+            color: #dc3545;
+            /* Red for threats */
+        }
+
+        .safe-stat {
+            color: #28a745;
+            /* Green for safe */
+        }
+
+        .list-group-item {
+            background-color: transparent;
+            color: #ddd;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .list-group-item strong {
+            color: #fff;
+        }
+
+        /* Chart container styling */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'user_home' %}">SentinelAI</a>
+            <div class="d-flex">
+                <a href="{% url 'logout' %}" class="btn btn-warning btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container report-container mt-5 pt-5">
+        <div class="report-header">
+            <h1>User Activity Report</h1>
+            <p class="text-white-50">Generated on {{ current_time|date:"F d, Y, h:i A" }}</p>
+
+            <div class="mt-3 d-flex justify-content-center gap-3">
+                <a href="{% url 'download_report' report_format='pdf' %}" class="btn btn-danger btn-sm">
+                    <i class="bi bi-file-pdf"></i> Download PDF 📄
+                </a>
+                <a href="{% url 'download_report' report_format='excel' %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-file-earmark-excel"></i> Download Excel 📊
+                </a>
+            </div>
+        </div>
+
+        <div class="summary-card text-center mb-5">
+            {% with total_submissions=report.total_submissions total_threats=report.total_threats_detected %}
+            {% if total_submissions > 0 %}
+            {% with safe_submissions=total_submissions|sub:total_threats %}
+            {% with threat_percentage=total_threats|percentage:total_submissions %}
+            {% if total_threats > 0 %}
+            <p class="lead text-warning">
+                **Action Required:** {{ threat_percentage }}% of your content required flagging. We detected **{{
+                total_threats }} threats** out of **{{ total_submissions }} submissions**.
+            </p>
+            {% else %}
+            <p class="lead text-success">
+                **Excellent:** 100% of your analyzed content was marked as safe. Keep up the clean digital footprint!
+            </p>
+            {% endif %}
+            <div class="row pt-3">
+                <div class="col text-center">
+                    <span class="safe-stat summary-stat">{{ safe_submissions }}</span>
+                    <p class="text-success small">Safe Submissions</p>
+                </div>
+                <div class="col text-center">
+                    <span class="threat-stat summary-stat">{{ threat_percentage }}%</span>
+                    <p class="text-danger small">Threat Rate</p>
+                </div>
+            </div>
+            {% endwith %}
+            {% endwith %}
+            {% else %}
+            <p class="lead text-info">Start analyzing content to generate your first report!</p>
+            {% endif %}
+            {% endwith %}
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="summary-card">
+                    <h4>Total Submissions</h4>
+                    <span class="summary-stat text-white">{{ report.total_submissions }}</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="summary-card">
+                    <h4>Flagged Threats</h4>
+                    <span class="summary-stat threat-stat">{{ report.total_threats_detected }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-card mt-4">
+            <h4 class="mb-3">Threat Category Distribution</h4>
+            {% if report.threat_categories %}
+            <div class="chart-container">
+                <canvas id="threatPieChart"
+                    data-categories="{% for category in report.threat_categories.keys %}{{ category|replace_chars:"
+                    _| " | title }},{% endfor %}"
+                    data-counts="{% for count in report.threat_categories.values %}{{ count }},{% endfor %}">
+                </canvas>
+            </div>
+
+            <ul class="list-group list-group-flush mt-3">
+                {% for category, count in report.threat_categories.items %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <strong>{{ category|replace_chars:"_| " | title }}</strong>
+                    <span class="badge bg-danger rounded-pill">{{ count }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No threats have been detected in your submissions.</p>
+            {% endif %}
+        </div>
+        <div class="summary-card mt-4">
+            <h4>Recent Activity Logs</h4>
+            <ul class="list-group list-group-flush">
+                {% if report.recent_activity %}
+                {% for activity in report.recent_activity %}
+                <li class="list-group-item">
+                    <strong>{{ activity.activityType }}</strong>
+                    <span class="text-white-50 float-end">{{ activity.timeStamp|date:"M d, Y h:i A" }}</span>
+                    <p class="mb-0 text-white-75">{{ activity.description }}</p>
+                </li>
+                {% endfor %}
+                {% else %}
+                <p>No recent activity logs available.</p>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{% url 'user_home' %}" class="btn btn-outline-light btn-lg btn-custom">Go Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chartElement = document.getElementById('threatPieChart');
+            if (chartElement) {
+                const categoriesData = chartElement.getAttribute('data-categories');
+                const countsData = chartElement.getAttribute('data-counts');
+
+                // Split and clean up the data strings
+                const labels = categoriesData.split(',').filter(l => l.length > 0);
+                const data = countsData.split(',').filter(c => c.length > 0).map(Number);
+
+                // Define colors based on your dark theme for better contrast
+                const colors = [
+                    'rgba(220, 53, 69, 0.8)',   // Danger Red
+                    'rgba(255, 193, 7, 0.8)',   // Warning Yellow
+                    'rgba(23, 162, 184, 0.8)',  // Info Cyan
+                    'rgba(108, 117, 125, 0.8)', // Secondary Gray
+                    'rgba(0, 123, 255, 0.8)'    // Primary Blue
+                ];
+
+                const ctx = chartElement.getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors.slice(0, labels.length),
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: '#ddd', // White text for dark theme
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            },
+                            title: {
+                                display: false,
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
 </html>

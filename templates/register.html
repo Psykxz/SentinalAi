@@ -61,42 +61,34 @@
 </head>
 
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-dark bg-dark fixed-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">SentinelAI</a>
         </div>
     </nav>
 
-    <!-- Register Card -->
     <div class="login-card">
         <h2>Register</h2>
         <form method="POST">
             {% csrf_token %}
 
-            <!-- Username -->
             <div class="mb-3">
                 <input type="text" class="form-control" name="username" placeholder="Enter Username" required>
             </div>
 
-            <!-- Full Name -->
             <div class="mb-3">
                 <input type="text" class="form-control" name="full_name" placeholder="Enter Full Name" required>
             </div>
 
-            <!-- Email -->
             <div class="mb-3">
                 <input type="email" class="form-control" name="email" placeholder="Enter Email" required>
             </div>
 
-            <!-- Phone Number -->
             <div class="mb-3">
                 <input type="tel" class="form-control" name="phone_number" placeholder="Enter Phone Number" required>
             </div>
 
-            <!-- Gender -->
             <div class="mb-3">
-                <!-- <label class="form-label d-block mb-2 text-center fw-semibold">Gender</label> -->
                 <div class="btn-group w-100" role="group" aria-label="Gender selection">
                     <input type="radio" class="btn-check" name="gender" id="male" value="Male" autocomplete="off"
                         required>
@@ -108,12 +100,10 @@
                 </div>
             </div>
 
-            <!-- Password -->
             <div class="mb-3">
                 <input type="password" class="form-control" name="password1" placeholder="Enter Password" required>
             </div>
 
-            <!-- Confirm Password -->
             <div class="mb-3">
                 <input type="password" class="form-control" name="password2" placeholder="Confirm Password" required>
             </div>
@@ -121,7 +111,6 @@
             <button type="submit" class="btn btn-primary btn-login">Register</button>
         </form>
 
-        <!-- Link to login -->
         <div class="text-center mt-3 text-muted">
             <small>Already have an account? <a href="{% url 'login' %}">Sign in</a></small>
         </div>

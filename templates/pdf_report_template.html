@@ -1,0 +1,64 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SentinelAI User Report</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; color: #333; }
+        h1 { color: #141e30; border-bottom: 2px solid #5cb85c; padding-bottom: 5px; }
+        .summary, .section { margin-bottom: 20px; border: 1px solid #eee; padding: 15px; }
+        .stat { font-size: 1.5em; font-weight: bold; margin-bottom: 5px; }
+        .threat { color: #dc3545; }
+        .safe { color: #28a745; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>SentinelAI User Activity Report</h1>
+    <p>Report for User ID: {{ user_id }} | Generated: {{ 'current_time'|date:"F d, Y, h:i A" }}</p>
+
+    <div class="summary">
+        <h2>Summary Statistics</h2>
+        <p>Total Submissions: <span class="stat">{{ report.total_submissions }}</span></p>
+        <p>Threats Detected: <span class="stat threat">{{ report.total_threats_detected }}</span></p>
+        <p>Threat Rate: <span class="stat threat">{{ report.threat_percentage }}%</span></p>
+    </div>
+
+    <div class="section">
+        <h2>Threat Categories</h2>
+        <table>
+            <thead>
+                <tr><th>Category</th><th>Count</th></tr>
+            </thead>
+            <tbody>
+                {% for category, count in report.threat_categories.items %}
+                <tr>
+                    <td>{{ category|replace_chars:"_| " | title }}</td>
+                    <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Recent Activity Log</h2>
+        <table>
+            <thead>
+                <tr><th>Timestamp</th><th>Type</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+                {% for activity in report.recent_activity %}
+                <tr>
+                    <td>{{ activity.timeStamp|date:"M d, Y H:i" }}</td>
+                    <td>{{ activity.activityType }}</td>
+                    <td>{{ activity.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
